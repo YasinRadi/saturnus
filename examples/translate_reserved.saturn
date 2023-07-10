@@ -1,0 +1,28 @@
+// The main target of Saturnus, as you might know, is Lua.
+// That, makes the compiler target to translate somehow symbols like
+// "then" and so.
+
+class Turn {
+    let direction = "unknown";
+}
+
+class Steer {
+    let where = ();
+
+    fn new(where) {
+        return Steer { where };
+    }
+
+    fn then(self) {
+        return Turn { direction: self.where };
+    }
+}
+
+let group = { then: { then: 'then' } };
+
+let foo = group.then.then;
+
+// Then, is a reserved keyword in Lua, it would produce
+// invalid source coded if not treated.
+let dir = Steer::new().then("left").direction;
+print("Steering to left yelds a turn to " ++ dir);

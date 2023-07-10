@@ -325,6 +325,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &ast::CallExpression,
     ) -> Result<code::Builder, code::VisitError> {
+        let mut escaped = false;
         let ctx = if let Some(callee) = expr.head.callee.clone() {
             let ctx = self.visit_expression(ctx, &callee.head)?;
             let ctx = callee
@@ -341,7 +342,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                             let ctx = self.visit_expression(ctx, &c)?;
                             ctx.put("]")
                         }
-                        ast::MemberSegment::IdentifierDynamic(c) => ctx.put(".").put(c.0.clone()),
+                        ast::MemberSegment::IdentifierDynamic(c) => self.escape_reference(ctx, c)?,
                         ast::MemberSegment::IdentifierStatic(_) => Err(VisitError)?,
                     };
                     Ok(ctx)
@@ -353,8 +354,15 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                         let ctx = self.visit_expression(ctx, &c)?;
                         ctx.put("]")
                     }
-                    ast::MemberSegment::IdentifierDynamic(c) => ctx.put(":").put(c.0.clone()),
-                    ast::MemberSegment::IdentifierStatic(c) => ctx.put(".").put(c.0.clone()),
+                    ast::MemberSegment::IdentifierDynamic(c) => {
+                        if c.0 == "then" {
+                            escaped = true;
+                            ctx.put("['then']")
+                        } else {
+                            ctx.put(" = ").put(c.0.clone())
+                        }
+                    },
+                    ast::MemberSegment::IdentifierStatic(c) => self.escape_reference(ctx, c)?,
                 }
             } else {
                 ctx
@@ -364,6 +372,16 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             ctx
         };
         let ctx = ctx.put("(");
+        let ctx = if escaped {
+            let mem = expr.tail.iter().rev().skip(1).rev().last().unwrap();
+            match mem {
+                ast::CallExpressionVariant::Call(e) => e.,
+                ast::CallExpressionVariant::Member(e) => todo!(),
+            }
+            self.visit_expression(ctx, mem)?
+        } else {
+            ctx
+        };
         let ctx = if let Some(first) = expr.head.arguments.first() {
             self.visit_expression(ctx, first)?
         } else {
