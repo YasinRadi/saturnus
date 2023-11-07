@@ -1,8 +1,22 @@
 // Example usage of macros
+let { panic } = use std;
+
+macro test(ast) {
+  ast.body = [
+    { type: "call", target: "panic", arguments: [
+      { type: "string_literal", value: "This is a test!" }
+    ] }
+  ];
+  return ast;
+}
 
 #[native(Lua)]
 fn foo() = "
   local foobar = 'moo';
 ";
 
+#[test]
+fn bar() = 0;
+
 print(foo());
+print(bar());

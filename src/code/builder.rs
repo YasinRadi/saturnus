@@ -79,6 +79,12 @@ impl Builder {
             ..self
         }
     }
+    pub fn line_put<T>(self, fragment: T) -> Self
+    where
+        T: Into<String>,
+    {
+        self.line().put(fragment)
+    }
     pub fn _and(self, other: Self) -> Self {
         Builder {
             buffer: format!("{}{}", self.buffer, other.buffer),

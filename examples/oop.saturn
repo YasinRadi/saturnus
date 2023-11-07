@@ -2,8 +2,13 @@
 let { abstract, entries, mixin, trait, impl } = use std;
 
 // Simple abstract class example.
+// Building this class is not forbidden, but it will blow when attempting to
+// invoke example() method.
 class SimpleAbstract {
-  @abstract() fn example(self) {}
+  // Abstract method!
+  @abstract() fn example(self) = 0;
+  
+  // Normal method
   fn inherited(self) {
     print("This was inherited by " ++ self.name);
   }

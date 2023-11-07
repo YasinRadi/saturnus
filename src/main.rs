@@ -1,6 +1,7 @@
 use std::{fs::File, io::Write, path::Path};
 
 use clap::Parser;
+use code::macros::MacroExpander;
 use errors::report_error;
 use runtime::RuntimeError;
 
@@ -82,15 +83,19 @@ fn try_run(options: CompilationOptions, input: String, indent: String) -> Result
         format!("{header}\n__modules__.std = {{\n{embed}\n}};")
     };
 
-    let compiler = lua::visitor::LuaEmitter();
+    let compiler = lua::visitor::LuaEmitter::new();
 
     if options.args.dump_saturnus {
         println!("{input}");
         return Ok(());
     }
 
+    let mut macro_expander = MacroExpander::new();
+
     let script = parser::Script::parse(format!("{header}\n{input}"))
         .map_err(|err| RuntimeError::ParseError(err))?;
+    let script = macro_expander.compile_macros(&script).unwrap();
+    let script = macro_expander.expand_macros(&script).unwrap();
 
     let CompilationOptions {
         args,

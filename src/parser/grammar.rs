@@ -1,4 +1,5 @@
 use super::ast::*;
+use serde::{Deserialize, Serialize};
 
 peg::parser! {
     grammar saturnus_script() for str {
@@ -33,8 +34,8 @@ peg::parser! {
             }
 
         rule identifier_or_call() -> IdentifierOrCall
-            = e:call_expression() { IdentifierOrCall::Call(e) }
-            / e:identifier() { IdentifierOrCall::Identifier(e) }
+            = target:identifier() _ a:("(" _ e:expression() ** (_ "," _) _ ")" { e })?
+            { IdentifierOrCall { target, arguments: if let Some(v) = a { v } else { vec![] } } }
 
         rule if_stmt() -> If
             = "if" __ condition:expression() __ "{" body:script()
@@ -426,7 +427,7 @@ peg::parser! {
 
 pub type ParseResult = Result<Script, peg::error::ParseError<peg::str::LineCol>>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Script {
     pub statements: Vec<Statement>,
 }

@@ -7,7 +7,14 @@ use crate::parser::{ast, Script};
 use super::builder::Builder;
 
 #[derive(Debug)]
-pub struct VisitError(pub Box<dyn Error>);
+pub enum VisitError {
+    Unknown,
+    Generic(Box<dyn Error>),
+    MacroRuntimeError(Box<dyn Error>),
+    MacroCompilationError(Box<dyn Error>),
+    InvalidMacroDeclaration,
+    BadStaticIdentifierPosition,
+}
 
 pub type Result = std::result::Result<Builder, VisitError>;
 
@@ -51,9 +58,6 @@ pub trait Visitor {
     fn visit_block_expression(&self, ctx: Builder, expr: &Do) -> Result;
     fn visit_script(&self, ctx: Builder, script: &Script) -> Result;
 
-    // Macros
-    fn visit_macro_decorator(&self, ctx: Builder, stmt: &MacroDecorator) -> Result;
-
     // Generically implementable matching patterns:
     fn visit_expression(&self, ctx: Builder, expression: &Expression) -> Result {
         match expression {
@@ -76,7 +80,7 @@ pub trait Visitor {
     }
     fn visit_statement(&self, ctx: Builder, statement: &Statement) -> Result {
         match statement {
-            ast::Statement::MacroDecorator(e) => self.visit_macro_decorator(ctx, e),
+            ast::Statement::MacroDecorator(_) => panic!("Macros must be expanded earlier!"),
             ast::Statement::If(e) => self.visit_if(ctx, e),
             ast::Statement::For(e) => self.visit_for(ctx, e),
             ast::Statement::Loop(e) => self.visit_loop(ctx, e),
