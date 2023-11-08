@@ -12,6 +12,7 @@ peg::parser! {
             = e:macro_decorator() { Statement::MacroDecorator(Box::new(e)) }
             / e:class() { Statement::Class(e) }
             / e:func() { Statement::Function(e) }
+            / e:macro_declare() { Statement::MacroDeclare(e) }
             / e:for_each() { Statement::For(e) }
             / e:while_loop() { Statement::While(e) }
             / e:loop_loop() {  Statement::Loop(e) }
@@ -70,6 +71,9 @@ peg::parser! {
             / decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ body:func_body()
             { Function { name, decorators, body, arguments, native: None } }
             / expected!("Function declaration")
+
+        rule macro_declare() -> Function
+            = "macro" _ e:func() { e }
 
         rule func_body() -> Script
             = "{" body:script() "}" { body }

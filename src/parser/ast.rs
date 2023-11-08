@@ -206,6 +206,7 @@ pub enum Statement {
     Return(Return),
     Class(Class),
     Function(Function),
+    MacroDeclare(Function),
     Assignment(Assignment),
     Let(Let),
     Expression(Expression),
