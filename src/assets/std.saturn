@@ -128,6 +128,35 @@ fn abstract() {
   };
 }
 
+fn to_json(tbl) {
+  if tbl == () {
+    return "null";
+  }
+  if type(tbl) == "table" {
+    if tbl[1] <> () {
+      let src = "";
+      for (_, v) in entries(tbl) {
+        if v <> tbl {
+          src ++= ", " ++ to_json(v);
+        }
+      }
+      return "[" ++ src.sub(3, #?src) ++ "]";
+    } else {
+      let src = "";
+      for (k, v) in entries(tbl) {
+        if v <> tbl {
+          src ++= ", " ++ "\"" ++ k ++ "\": " ++ to_json(v);
+        }
+      }
+      return "{" ++ src.sub(3, #?src) ++ "}";
+    }
+  }
+  if type(tbl) == "string" {
+    return "\"" ++ tbl ++ "\"";
+  }
+  return tostring(tbl);
+}
+
 // STD Custom operators
 
 fn `|>`(left, right) {
@@ -218,5 +247,7 @@ return {
   mixin,
   panic,
   entries,
-  `:::`, `..`, `|>`, `<|`, `+?`, `+??`, `++?`, `++??`, `-?`, `-??`, `*?`, `*??`, `/?`, `/??`
+  to_json,
+  `:::`, `..`, `|>`, `<|`, `+?`, `+??`, `++?`, `++??`, `-?`, `-??`, `*?`, `*??`,
+  `/?`, `/??`
 };

@@ -1,8 +1,12 @@
 use std::collections::HashMap;
 
-use crate::parser::{
-    ast::{self, Function, IdentifierOrCall, Statement},
-    Script,
+use crate::{
+    code::builder::Builder,
+    lua::visitor::LuaEmitter,
+    parser::{
+        ast::{self, Function, IdentifierOrCall, Statement},
+        Script,
+    },
 };
 
 #[derive(Debug)]
@@ -32,11 +36,13 @@ impl MacroData {
 
 pub struct MacroExpander {
     pub macros: HashMap<String, MacroData>,
+    emitter: LuaEmitter,
 }
 
 impl MacroExpander {
     pub fn new() -> MacroExpander {
         MacroExpander {
+            emitter: LuaEmitter::new(),
             macros: HashMap::new(),
         }
     }
@@ -53,6 +59,7 @@ impl MacroExpander {
             .iter()
             .filter(|stmt| {
                 if let Statement::MacroDeclare(func) = stmt {
+                    println!("Compiling macro {}...", func.name.0);
                     self.macros.insert(
                         func.name.0.clone(),
                         MacroData::compiled(func.clone()).unwrap(),
@@ -70,14 +77,28 @@ impl MacroExpander {
     /// Takes all macro invocations, either by explicit invocation or by implicit
     /// decoration, and applies them the compiled macro code.
     pub fn expand_macros(&self, script: &Script) -> Result<Script, MacroExpansionError> {
+        use crate::code::ast_visitor::Visitor;
         let rt = rlua::Lua::new();
-        let statements: Vec<Statement> = vec![];
+        let mut statements: Vec<Statement> = vec![];
         for stmt in script.statements.iter() {
             if let Statement::MacroDecorator(dec) = stmt {
                 for expander in dec.macros.iter() {
                     if let Some(found) = self.macros.get(&expander.target.0) {
+                        println!("Expanding macro {}...", found.func.name.0);
+                        let invoke = format!(
+                            "{}({});",
+                            expander.target.0,
+                            serde_json::to_string(&dec.target).unwrap()
+                        );
+                        let invoke = Script::parse(invoke).unwrap();
+                        let invoke = self
+                            .emitter
+                            .visit_script(Builder::new("  "), &invoke)
+                            .unwrap()
+                            .collect();
                         rt.context(|ctx| {
-                            ctx.load(&found.runtime_code).eval().unwrap();
+                            let src = format!("{}\n{}", found.runtime_code, invoke);
+                            ctx.load(&src).eval::<()>().unwrap();
                         });
                     } else {
                         Err(MacroExpansionError::MacroNotDefined(
@@ -86,7 +107,7 @@ impl MacroExpander {
                     }
                 }
             } else {
-                statements.push(stmt);
+                statements.push(stmt.clone());
             }
         }
         Ok(Script { statements })

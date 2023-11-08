@@ -1,7 +1,11 @@
 // Example usage of macros
 let { panic } = use std;
 
-macro test(ast) {
+macro fn native() {
+  return 0;
+}
+
+macro fn test(ast) {
   ast.body = [
     { type: "call", target: "panic", arguments: [
       { type: "string_literal", value: "This is a test!" }

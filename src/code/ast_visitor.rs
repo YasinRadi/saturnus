@@ -80,6 +80,7 @@ pub trait Visitor {
     }
     fn visit_statement(&self, ctx: Builder, statement: &Statement) -> Result {
         match statement {
+            ast::Statement::MacroDeclare(_) => panic!("Macros must be compiled earlier!"),
             ast::Statement::MacroDecorator(_) => panic!("Macros must be expanded earlier!"),
             ast::Statement::If(e) => self.visit_if(ctx, e),
             ast::Statement::For(e) => self.visit_for(ctx, e),

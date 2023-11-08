@@ -73,7 +73,7 @@ peg::parser! {
             / expected!("Function declaration")
 
         rule macro_declare() -> Function
-            = "macro" _ e:func() { e }
+            = "macro" __ e:func() { e }
 
         rule func_body() -> Script
             = "{" body:script() "}" { body }
