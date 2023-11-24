@@ -66,3 +66,14 @@ let monster = MonsterJack {};
 imp->foo();
 child->foo();
 monster->foo();
+
+// Type checking and rtti
+let a_str = "foo"
+let an_obj = Child {};
+
+if typeof an_obj == Child {
+  print("Is a Child type!");
+}
+if typeof a_str == string {
+  print("Is a string type!");
+}
