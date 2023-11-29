@@ -241,6 +241,7 @@ pub enum Statement {
     If(If),
     Match(Match),
     For(For),
+    Do(Do),
     Loop(Loop),
     While(While),
     Return(Return),
@@ -322,6 +323,15 @@ impl StringLiteral {
 }
 
 #[derive(Debug, Clone)]
+pub struct Is {
+    pub left: Expression,
+    pub right: Expression,
+}
+
+#[derive(Debug, Clone)]
+pub struct TypeOf(Box<Expression>);
+
+#[derive(Debug, Clone)]
 pub enum Expression {
     Lambda(Box<Lambda>),
     Reference(Box<MemberExpression>),
@@ -338,5 +348,7 @@ pub enum Expression {
     Binary(Box<BinaryExpression>),
     Unary(Box<UnaryExpression>),
     Spread(Box<SpreadExpression>),
+    Is(Box<Is>),
+    TypeOf(TypeOf),
     Unit,
 }

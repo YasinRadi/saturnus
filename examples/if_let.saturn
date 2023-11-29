@@ -1,0 +1,9 @@
+// Example of if-let vs if
+
+if a == b {
+  let o = 0;
+}
+
+if let Some(foo) = b {
+  let k = foo;
+}

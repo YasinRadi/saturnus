@@ -46,6 +46,14 @@ peg::parser! {
             { If { condition, body, branches, else_branch } }
             / expected!("If statement")
 
+        rule if_let_stmt() -> Do
+            = "if" __ "let" __ matcher:expression() destruct:(_ e:destructure_expression() {e})? _ "=" _ target:expression()
+              __ "{" body:script() "}"
+            { Do { body: Script { statements: vec![
+
+            ] } } }
+            / expected!("If let statement")
+
         rule for_each() -> For
             = "for" __ handler:assignment_target() __ "in" __ target:expression() _ "{"
               body:script() "}"
