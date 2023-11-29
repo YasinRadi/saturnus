@@ -230,6 +230,53 @@ if a {
 }
 ```
 
+Runtime type checks can be done with `typeof`. Aside from that,
+Saturnus comes with some builtin types that help controlling the
+presence of values, and the errors that might arise.
+
+```rs
+use { Ok, Err, Some, None } in std;
+
+let ok = Ok(199);
+let err = Err("Fatal!");
+
+if let Ok(value) = ok {
+  print("Ok!", value);
+}
+if let Err(error) = err {
+  print("Error!", error);
+}
+
+let some = Some("value");
+let none = None;
+
+if let Some(value) = some {
+  print("There you are", value);
+}
+if let None = none {
+  print("No value!");
+}
+// This is roughly the same as doing
+if typeof none == None or none == None {
+  print("No value!");
+}
+// In fact, if let with destructuring is a syntax sugar:
+if typeof some == Some or some == Some {
+  let (value) = some;
+}
+
+class Harry {
+  fn new() = Harry { last_name: "Potter" };
+}
+let potter = Harry.new();
+
+// This means that you could have:
+if let Harry{ last_name } = potter {
+  print("Harry " ++ last_name ++ "!");
+}
+// And so it would work with either (a, b...), {a, b...} or [a, b...]
+```
+
 Functions!
 
 Functions are declared like Lua ones, using `fn` keyword, but with a catch: They
