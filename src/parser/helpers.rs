@@ -1,5 +1,5 @@
-pub fn translate_operator_symbol(operator: &u8) -> String {
-    match operator {
+pub fn translate_operator_symbol(op: &u8) -> String {
+    match op {
         b'+' => "plus",
         b'-' => "minus",
         b'*' => "times",
@@ -18,10 +18,10 @@ pub fn translate_operator_symbol(operator: &u8) -> String {
         b'$' => "dollar",
         b'^' => "power",
         b':' => "colon",
-        _ => panic!(
-            "Error! Unexpected operator {} to be translated as a function!",
-            operator
-        ),
+        _ => {
+            let val = op.clone() as char;
+            panic!("Error! Unexpected operator '{val}' ({op}) to be translated as a function!")
+        }
     }
     .to_owned()
 }

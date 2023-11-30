@@ -59,3 +59,8 @@ let result = {
 };
 print(result, my_var);
 
+// Null checks
+let tbl = { field: { } };
+let a_foo = nothing ?? "foo";
+let a_thing = tbl.field?.field?.method?.() ?? "Nah";
+print(a_foo, a_thing)

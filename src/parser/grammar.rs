@@ -46,13 +46,13 @@ peg::parser! {
             { If { condition, body, branches, else_branch } }
             / expected!("If statement")
 
-        rule if_let_stmt() -> Do
-            = "if" __ "let" __ matcher:expression() destruct:(_ e:destructure_expression() {e})? _ "=" _ target:expression()
-              __ "{" body:script() "}"
-            { Do { body: Script { statements: vec![
+        // rule if_let_stmt() -> Do
+        //     = "if" __ "let" __ matcher:expression() destruct:(_ e:destructure_expression() {e})? _ "=" _ target:expression()
+        //       __ "{" body:script() "}"
+        //     { Do { body: Script { statements: vec![
 
-            ] } } }
-            / expected!("If let statement")
+        //     ] } } }
+        //     / expected!("If let statement")
 
         rule for_each() -> For
             = "for" __ handler:assignment_target() __ "in" __ target:expression() _ "{"
@@ -130,9 +130,9 @@ peg::parser! {
         rule member_expression() -> MemberExpression
             = head:primary()
             tail:(
-                _ "[" _ e:expression() _ "]" { MemberSegment::Computed(e) }
-                / _ "." _ i:identifier() { MemberSegment::Identifier(i) }
-                / _ "->" _ prop:identifier() { MemberSegment::Dispatch(prop).into() }
+                _ maybe:maybe() "[" _ e:expression() _ "]" { MemberSegment::Computed(e, maybe) }
+                / _ maybe:maybe() "." _ i:identifier() { MemberSegment::Identifier(i, maybe) }
+                / _ maybe:maybe() "->" _ prop:identifier() { MemberSegment::Dispatch(prop, maybe) }
             )*
             { MemberExpression { head, tail } }
 
@@ -140,18 +140,23 @@ peg::parser! {
             = target:identifier() "!" _ arguments:call_arguments()?
                 { MacroCallExpression { target, arguments } }
 
+        rule maybe() -> bool = e:"?"? { e.is_some() }
+        rule maybe_dot() -> bool = e:"?."? { e.is_some() }
+
         rule call_expression() -> CallExpression
-            = head:(
-                callee:member_expression() _ arguments:call_arguments()
-                    { CallSubExpression { callee: Some(callee), arguments }.into() }
+            = head:
+                ( callee:member_expression() _ arguments:call_arguments()
+                    { CallSubExpression { callee: Some(callee), arguments, maybe: false }.into() }
                 / callee:member_expression() _ arg:table_expression()
-                    { CallSubExpression { callee: Some(callee), arguments: vec![arg] } }
+                    { CallSubExpression { callee: Some(callee), arguments: vec![arg], maybe: false } }
+                / callee:member_expression() _ arg:do_literal()
+                    { CallSubExpression { callee: Some(callee), arguments: vec![arg.as_lambda()], maybe: false } }
             )
             tail:(
-                  _ "[" _ prop:expression() _ "]" { MemberSegment::Computed(prop).into() }
-                / _ "." _ prop:identifier() { MemberSegment::Identifier(prop).into() }
-                / _ "->" _ prop:identifier() { MemberSegment::Dispatch(prop).into() }
-                / _ arguments:call_arguments() { CallSubExpression { callee: None, arguments }.into() }
+                  _ maybe:maybe_dot() "[" _ prop:expression() _ "]" { MemberSegment::Computed(prop, maybe).into() }
+                / _ maybe:maybe() "." _ prop:identifier() { MemberSegment::Identifier(prop, maybe).into() }
+                / _ maybe:maybe() "->" _ prop:identifier() { MemberSegment::Dispatch(prop, maybe).into() }
+                / _ maybe:maybe_dot() arguments:call_arguments() { CallSubExpression { callee: None, arguments, maybe }.into() }
             )*
             { CallExpression { head, tail } }
 
@@ -181,12 +186,15 @@ peg::parser! {
             // value:$("+") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             value:$("#?") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             value:$("not") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            value:$("typeof") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             // value:$("~^") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             // value:$("!" _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             // value:$("~") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             // value:$("¬" _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             // value:$("$") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             // value:$("!?") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            --
+            left:(@) __ value:$("is") __ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
             --
             left:(@) _ value:$("++") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
             left:(@) _ value:$("..") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }

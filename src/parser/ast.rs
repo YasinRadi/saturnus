@@ -31,10 +31,24 @@ pub struct Lambda {
     pub arguments: Vec<Argument>,
     pub body: ScriptOrExpression,
 }
+impl Into<Expression> for Lambda {
+    fn into(self) -> Expression {
+        Expression::Lambda(Box::new(self))
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Do {
     pub body: Script,
+}
+impl Do {
+    pub fn as_lambda(self) -> Expression {
+        Lambda {
+            arguments: vec![],
+            body: ScriptOrExpression::Script(self.body),
+        }
+        .into()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -56,9 +70,9 @@ pub struct MacroCallExpression {
 
 #[derive(Debug, Clone)]
 pub enum MemberSegment {
-    Computed(Expression),
-    Identifier(Identifier),
-    Dispatch(Identifier),
+    Computed(Expression, bool),
+    Identifier(Identifier, bool),
+    Dispatch(Identifier, bool),
 }
 impl Into<CallExpressionVariant> for MemberSegment {
     fn into(self) -> CallExpressionVariant {
@@ -121,6 +135,7 @@ pub struct Class {
 pub struct CallSubExpression {
     pub callee: Option<MemberExpression>,
     pub arguments: Vec<Expression>,
+    pub maybe: bool,
 }
 impl Into<CallExpressionVariant> for CallSubExpression {
     fn into(self) -> CallExpressionVariant {
@@ -323,15 +338,6 @@ impl StringLiteral {
 }
 
 #[derive(Debug, Clone)]
-pub struct Is {
-    pub left: Expression,
-    pub right: Expression,
-}
-
-#[derive(Debug, Clone)]
-pub struct TypeOf(Box<Expression>);
-
-#[derive(Debug, Clone)]
 pub enum Expression {
     Lambda(Box<Lambda>),
     Reference(Box<MemberExpression>),
@@ -348,7 +354,5 @@ pub enum Expression {
     Binary(Box<BinaryExpression>),
     Unary(Box<UnaryExpression>),
     Spread(Box<SpreadExpression>),
-    Is(Box<Is>),
-    TypeOf(TypeOf),
     Unit,
 }

@@ -1,9 +1,8 @@
 // Example of runtime type information
-use { rtti } in std;
-let { arguments } = rtti;
+use { rtti: { arguments } } in std;
 
 class Foo {
-  @arguments(["self", "any"], ["num", "number"], ["str", "string"])
+  @arguments(("self", "any"), ("num", "number"), ("str", "string"))
   fn bar(self, num, str) {
     return "1 + " ++ num ++ " = " ++ (1 + num) ++ str;
   }
@@ -11,6 +10,14 @@ class Foo {
 
 let foo = Foo {};
 
+if foo is Foo {
+  print("foo is Foo!");
+}
+
+let typeOfFoo = typeof foo;
+print("Is type of foo?", typeOfFoo == Foo);
+
+// Runtime type checks
 print(foo->bar(10, "!"));
 // this will blow:
 print(foo->bar("a", 99));

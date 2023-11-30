@@ -71,13 +71,13 @@ impl LuaEmitter {
         S: Visitor,
     {
         match elem {
-            ast::MemberSegment::Computed(c) => {
+            ast::MemberSegment::Computed(c, maybe) => {
                 let ctx = ctx.put("[");
                 let ctx = s.visit_expression(ctx, &c)?;
                 Ok(ctx.put("]"))
             }
-            ast::MemberSegment::Identifier(i) => self.escape_reference(ctx, i),
-            ast::MemberSegment::Dispatch(i) => self.escape_reference(ctx, i),
+            ast::MemberSegment::Identifier(i, maybe) => self.escape_reference(ctx, i),
+            ast::MemberSegment::Dispatch(i, maybe) => self.escape_reference(ctx, i),
         }
     }
     fn collect_targets(&self, expr: &ast::Destructuring, targets: &mut Vec<Identifier>) {
@@ -451,6 +451,7 @@ impl Visitor for LuaEmitter {
                     tail: vec![],
                 }),
                 arguments: vec![ast::StringLiteral::expression_from_value(path.clone())],
+                maybe: false,
             };
             let call = ast::CallExpression {
                 head: call,
@@ -477,13 +478,13 @@ impl Visitor for LuaEmitter {
                 .fold(Ok(ctx), |ctx, elem| {
                     let ctx = ctx?;
                     let ctx = match elem {
-                        ast::MemberSegment::Computed(c) => {
+                        ast::MemberSegment::Computed(c, maybe) => {
                             let ctx = ctx.put("[");
                             let ctx = self.visit_expression(ctx, &c)?;
                             ctx.put("]")
                         }
-                        ast::MemberSegment::Identifier(c) => ctx.put(".").put(c.0.clone()),
-                        ast::MemberSegment::Dispatch(_) => {
+                        ast::MemberSegment::Identifier(c, maybe) => ctx.put(".").put(c.0.clone()),
+                        ast::MemberSegment::Dispatch(_, _) => {
                             panic!("Dispatch not allowed in this position")
                         }
                     };
@@ -491,13 +492,13 @@ impl Visitor for LuaEmitter {
                 })?;
             let ctx = if let Some(last) = callee.tail.last() {
                 match last {
-                    ast::MemberSegment::Computed(c) => {
+                    ast::MemberSegment::Computed(c, maybe) => {
                         let ctx = ctx.put("[");
                         let ctx = self.visit_expression(ctx, &c)?;
                         ctx.put("]")
                     }
-                    ast::MemberSegment::Identifier(c) => ctx.put(".").put(c.0.clone()),
-                    ast::MemberSegment::Dispatch(c) => ctx.put(":").put(c.0.clone()),
+                    ast::MemberSegment::Identifier(c, maybe) => ctx.put(".").put(c.0.clone()),
+                    ast::MemberSegment::Dispatch(c, maybe) => ctx.put(":").put(c.0.clone()),
                 }
             } else {
                 ctx
@@ -531,13 +532,13 @@ impl Visitor for LuaEmitter {
                 },
             ),
             ast::CallExpressionVariant::Member(m) => match m {
-                ast::MemberSegment::Computed(c) => {
+                ast::MemberSegment::Computed(c, maybe) => {
                     let ctx = ctx?.put("[");
                     let ctx = self.visit_expression(ctx, &c)?;
                     Ok(ctx.put("]"))
                 }
-                ast::MemberSegment::Identifier(i) => Ok(ctx?.put(".").put(i.0.clone())),
-                ast::MemberSegment::Dispatch(i) => Ok(ctx?.put(":").put(i.0.clone())),
+                ast::MemberSegment::Identifier(i, maybe) => Ok(ctx?.put(".").put(i.0.clone())),
+                ast::MemberSegment::Dispatch(i, maybe) => Ok(ctx?.put(":").put(i.0.clone())),
             },
         })?;
         Ok(ctx)
@@ -671,14 +672,24 @@ impl Visitor for LuaEmitter {
             "++" => {
                 // Native-to-native operator translation
                 let ctx = self.visit_expression(ctx, &expr.left)?.put(" ");
-                let ctx = ctx.put("..".to_owned());
+                let ctx = ctx.put("..");
                 self.visit_expression(ctx.put(" "), &expr.right)
             }
             "<>" => {
                 // Native-to-native operator translation
                 let ctx = self.visit_expression(ctx, &expr.left)?.put(" ");
-                let ctx = ctx.put("~=".to_owned());
+                let ctx = ctx.put("~=");
                 self.visit_expression(ctx.put(" "), &expr.right)
+            }
+            "is" => {
+                let ctx = self.visit_expression(ctx, &expr.left)?;
+                let ctx = ctx.put(" == ");
+                let ctx = self.visit_expression(ctx, &expr.right)?;
+                let ctx = ctx.put(" or type_of(");
+                let ctx = self.visit_expression(ctx, &expr.left)?;
+                let ctx = ctx.put(") == ");
+                let ctx = self.visit_expression(ctx, &expr.right)?;
+                Ok(ctx)
             }
             _ => {
                 // Direct function translation
@@ -696,6 +707,11 @@ impl Visitor for LuaEmitter {
             "-" => ctx.put("-"),
             "not" => ctx.put("not "),
             "#?" => ctx.put("#"),
+            "typeof" => {
+                let ctx = ctx.put("type_of(");
+                let ctx = self.visit_expression(ctx, &expr.expression)?;
+                return Ok(ctx.put(")"));
+            }
             op => todo!("Unary operator {:?} not supported!", op),
         };
         let ctx = self.visit_expression(ctx, &expr.expression)?;

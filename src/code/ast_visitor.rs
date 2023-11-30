@@ -93,6 +93,7 @@ pub trait Visitor {
             ast::Statement::Expression(e) => self.visit_expression_statement(ctx, e),
             ast::Statement::UseStatement(e) => self.visit_use_statement(ctx, e),
             ast::Statement::Extern(e) => self.visit_extern_block(ctx, e),
+            ast::Statement::Do(e) => Ok(ctx.put("TODO")),
         }
     }
     fn visit_block(&self, ctx: Builder, script: &Script) -> Result {

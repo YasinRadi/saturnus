@@ -125,12 +125,17 @@ fn try_run(options: CompilationOptions, input: String, indent: String) -> Result
         full_path: PathBuf::from(&options.in_path),
     });
     // Precompile STD
-    let std_src = include_str!("assets/std.saturn");
-    let std_src = Script::parse(std_src.to_owned()).unwrap();
-    let std_src = compiler
-        .visit_script(Builder::new("  "), &std_src)
-        .unwrap()
-        .collect();
+    let std_src = if options.args.no_std {
+        String::new()
+    } else {
+        let std_src = include_str!("assets/std.saturn");
+        let std_src = Script::parse(std_src.to_owned()).unwrap();
+        let std_src = compiler
+            .visit_script(Builder::new("  "), &std_src)
+            .unwrap()
+            .collect();
+        std_src
+    };
     let crc = md5::compute(std_src.as_bytes());
 
     if !options.args.no_std {
